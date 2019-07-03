@@ -103,6 +103,11 @@ def load_gat_dataset(adj_path, nodes_path, edges_path, role_path, tgt_path, num_
     edge_tensor = edges_tokenizer.texts_to_sequences(graph_edges)
     edge_tensor = tf.keras.preprocessing.sequence.pad_sequences(edge_tensor,padding='post')
 
+    roles_tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='')
+    roles_tokenizer.fit_on_texts(roles)
+    role_tensor = edges_tokenizer.texts_to_sequences(roles)
+    role_tensor = tf.keras.preprocessing.sequence.pad_sequences(role_tensor,padding='post')
+
     # save all vocabularies
     os.makedirs('vocabs', exist_ok=True)
     with open('vocabs/target_vocab', 'wb+') as fp:
@@ -111,9 +116,11 @@ def load_gat_dataset(adj_path, nodes_path, edges_path, role_path, tgt_path, num_
         pickle.dump(nodes_tokenizer, fp)
     with open('vocabs/edges_vocab', 'wb+') as fp:
         pickle.dump(edges_tokenizer, fp)
+    with open('vocabs/roles_vocab', 'wb+') as fp:
+        pickle.dump(roles_tokenizer, fp)
 
     return (graph_adj, node_tensor, nodes_tokenizer, edge_tensor,
-            edges_tokenizer, targ_tensor, targ_lang_tokenizer, max_length(targ_tensor))
+            edges_tokenizer, role_tensor, roles_tokenizer, targ_tensor, targ_lang_tokenizer, max_length(targ_tensor))
 
 
 def convert(lang, tensor):
@@ -141,7 +148,7 @@ def get_dataset(args):
 
 def get_gat_dataset(args):
 
-    (graph_adj, node_tensor, nodes_lang, edge_tensor, edges_lang,
+    (graph_adj, node_tensor, nodes_lang, edge_tensor, edges_lang, role_tensor, role_lang,
     target_tensor, target_lang, max_length_targ )= load_gat_dataset(args.graph_adj, args.graph_nodes,
                                                     args.graph_edges, args.tgt_path, args.num_examples)
     print(node_tensor.shape, edge_tensor.shape)
@@ -150,17 +157,20 @@ def get_gat_dataset(args):
     node_tensor = tf.pad(node_tensor, node_paddings, mode='CONSTANT')
     edge_paddings = tf.constant([[0,0], [0,9]])
     edge_tensor = tf.pad(edge_tensor, edge_paddings, mode='CONSTANT')
+    role_paddings = tf.constant([[0, 0], [0, 1]])
+    role_tensor = tf.pad(role_tensor, role_paddings, mode='CONSTANT')
     BUFFER_SIZE = len(target_tensor)
     BATCH_SIZE = args.batch_size
     steps_per_epoch = len(target_tensor) // BATCH_SIZE
     vocab_tgt_size = len(target_lang.word_index) + 1
     vocab_nodes_size = len(nodes_lang.word_index) + 1
     vocab_edge_size = len(edges_lang.word_index) + 1
+    vocab_role_size = len(role_lang.word_index) + 1
     print(graph_adj.shape, edge_tensor.shape, node_tensor.shape)
 
     dataset = tf.data.Dataset.from_tensor_slices((graph_adj, node_tensor, 
-                                                    edge_tensor, target_tensor)).shuffle(BUFFER_SIZE)
+                                                    edge_tensor, role_tensor, target_tensor)).shuffle(BUFFER_SIZE)
     dataset = dataset.batch(BATCH_SIZE, drop_remainder=True)
 
     return (dataset, BUFFER_SIZE, BATCH_SIZE, steps_per_epoch,
-            vocab_tgt_size, vocab_nodes_size, vocab_edge_size, target_lang, max_length_targ)
+            vocab_tgt_size, vocab_nodes_size, vocab_edge_size, vocab_role_size, target_lang, max_length_targ)

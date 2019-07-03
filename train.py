@@ -43,7 +43,8 @@ if __name__ == "__main__":
     if args.enc_type == 'gat' and args.dec_type =='rnn':
         OUTPUT_DIR += '/' + args.enc_type+'_'+args.dec_type
         (dataset, BUFFER_SIZE, BATCH_SIZE, steps_per_epoch,
-        vocab_tgt_size, vocab_nodes_size, vocab_edge_size, target_lang, max_length_targ) = get_gat_dataset(args)
+         vocab_tgt_size, vocab_nodes_size, vocab_edge_size, vocab_role_size,
+         target_lang, max_length_targ) = get_gat_dataset(args)
 
         embedding = tf.keras.layers.Embedding(vocab_nodes_size, args.emb_dim)
         model = graph_attention_model.GATModel(args, vocab_nodes_size, vocab_tgt_size, target_lang)
@@ -344,9 +345,10 @@ if __name__ == "__main__":
     elif ((args.enc_type == "gat")and(args.dec_type == "transformer")):
         OUTPUT_DIR += '/' + args.enc_type+'_'+args.dec_type
         (dataset, BUFFER_SIZE, BATCH_SIZE, steps_per_epoch,
-         vocab_tgt_size, vocab_nodes_size, vocab_edge_size, target_lang, max_length_targ) = get_gat_dataset(args)
+         vocab_tgt_size, vocab_nodes_size, vocab_edge_size, vocab_role_size,
+         target_lang, max_length_targ) = get_gat_dataset(args)
 
-        model = graph_attention_model.TransGAT(args, vocab_nodes_size,
+        model = graph_attention_model.TransGAT(args, vocab_nodes_size, vocab_role_size,
                                             vocab_tgt_size, target_lang)
         
         if args.decay is not None:
@@ -376,13 +378,13 @@ if __name__ == "__main__":
         else:
             steps = args.steps
 
-        def train_step(adj, nodes, targ):
+        def train_step(adj, nodes, roles, targ):
             tar_real = targ[:, 1:]
             tar_inp = targ[:, :-1]
 
             with tf.GradientTape() as tape:
                 mask = create_transgat_masks(tar_inp)
-                predictions, att_weights = model(adj, nodes, tar_inp, mask)
+                predictions, att_weights = model(adj, nodes, roles, tar_inp, mask)
                 batch_loss= loss_function(tar_real, predictions, loss_object)
                 reg_loss = tf.losses.get_regularization_loss()
                 batch_loss += reg_loss
@@ -397,13 +399,13 @@ if __name__ == "__main__":
             return batch_loss, acc
 
          # Eval function
-        def eval_step(adj, nodes, targ):
+        def eval_step(adj, nodes, roles, targ):
             model.trainable = False
             tar_real = targ[:, 1:]
             tar_inp = targ[:, :-1]
             mask = create_transgat_masks(tar_inp)
 
-            predictions, att_weights = model(adj, nodes, tar_inp, mask)
+            predictions, att_weights = model(adj, nodes, roles, tar_inp, mask)
             eval_loss = loss_function(tar_real, predictions, loss_object)
             train_loss(eval_loss)
             train_accuracy(tar_real, predictions)
@@ -419,18 +421,18 @@ if __name__ == "__main__":
                 train_loss.reset_states()
                 train_accuracy.reset_states()
 
-                for (batch, (adj, nodes, edges, targ)) in tqdm(enumerate(dataset)):
+                for (batch, (adj, nodes, edges, roles, targ)) in tqdm(enumerate(dataset)):
                     start = time.time()
                     step +=1
                     if args.decay is not None:
                         optimizer._lr = learning_rate(tf.cast(step, dtype=tf.float32))
 
                     if batch % args.eval_steps == 0:
-                        eval_loss, acc = eval_step(adj, nodes, targ)
+                        eval_loss, acc = eval_step(adj, nodes, roles, targ)
                         print('Epoch {} Batch {} Eval Loss {:.4f} Accuracy {:.4f}'.format(epoch, batch,
                                                                  eval_loss.numpy(), acc.numpy()))
                     else:
-                        batch_loss, acc = train_step(adj, nodes, targ)
+                        batch_loss, acc = train_step(adj, nodes, roles, targ)
                         print('Epoch {} Batch {} Train Loss {:.4f} Accuracy {:.4f}'.format(epoch, batch,
                                                                   batch_loss.numpy(), acc.numpy()))
 

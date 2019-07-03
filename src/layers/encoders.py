@@ -10,7 +10,7 @@ from src.layers.attention_layer import MultiHeadAttention
 from src.utils.model_utils import point_wise_feed_forward_network, positional_encoding
 
 class GraphEncoder(tf.keras.layers.Layer):
-    def __init__(self, num_layers, d_model, num_heads, dff, node_vocab_size,
+    def __init__(self, num_layers, d_model, num_heads, dff, node_vocab_size, role_vocab_size,
                  reg_scale=0.001, rate=0.1):
       
         super(GraphEncoder, self).__init__()
@@ -18,10 +18,11 @@ class GraphEncoder(tf.keras.layers.Layer):
         self.num_layers = num_layers
 
         self.node_embedding = tf.keras.layers.Embedding(node_vocab_size, d_model)
-        self.role_embedding = tf.keras.layers.Embedding(4, d_model)
+        # 4 = subject, object, predicate, bridge
+        self.role_embedding = tf.keras.layers.Embedding(role_vocab_size, d_model)
         self.node_pos_encoding = positional_encoding(node_vocab_size, self.d_model)
 
-        self.enc_layers = [GraphAttentionLayer(2*d_model, dff, num_heads,
+        self.enc_layers = [GraphAttentionLayer(d_model, dff, num_heads,
                                                reg_scale=reg_scale, rate=rate)
                            for _ in range(num_layers)]
 
