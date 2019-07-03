@@ -79,7 +79,7 @@ def load_dataset(src_path, tgt_path, num_examples=None):
 
     return input_tensor, target_tensor, inp_lang_tokenizer, targ_lang_tokenizer
 
-def load_gat_dataset(adj_path, nodes_path, edges_path, tgt_path, num_examples=None):
+def load_gat_dataset(adj_path, nodes_path, edges_path, role_path, tgt_path, num_examples=None):
     targ_lang = create_gat_dataset(tgt_path, num_examples)
     targ_tensor, targ_lang_tokenizer = tokenize(targ_lang)
     graph_adj = np.load(adj_path) 
@@ -88,7 +88,10 @@ def load_gat_dataset(adj_path, nodes_path, edges_path, tgt_path, num_examples=No
         graph_nodes = pickle.load(f)
 
     with open(edges_path, 'rb') as edge_f:
-        graph_edges = pickle.load(edge_f) 
+        graph_edges = pickle.load(edge_f)
+
+    with open(role_path, 'rb') as role_f:
+        roles = pickle.load(role_f)
     
     nodes_tokenizer = tf.keras.preprocessing.text.Tokenizer(filters='') 
     nodes_tokenizer.fit_on_texts(graph_nodes) 

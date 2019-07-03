@@ -18,16 +18,17 @@ class GraphEncoder(tf.keras.layers.Layer):
         self.num_layers = num_layers
 
         self.node_embedding = tf.keras.layers.Embedding(node_vocab_size, d_model)
+        self.role_embedding = tf.keras.layers.Embedding(4, d_model)
         self.node_pos_encoding = positional_encoding(node_vocab_size, self.d_model)
 
-        self.enc_layers = [GraphAttentionLayer(d_model, dff, num_heads,
+        self.enc_layers = [GraphAttentionLayer(2*d_model, dff, num_heads,
                                                reg_scale=reg_scale, rate=rate)
                            for _ in range(num_layers)]
 
         self.dropout = tf.keras.layers.Dropout(rate)
         self.layernorm = tf.contrib.layers.layer_norm
 
-    def call(self, nodes, adj, num_heads, training, mask):
+    def call(self, nodes, adj, roles, num_heads, training, mask):
         node_seq_len = tf.shape(nodes)[1]
 
         # adding embedding and position encoding.
@@ -37,6 +38,11 @@ class GraphEncoder(tf.keras.layers.Layer):
         node_tensor *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
         node_tensor += self.node_pos_encoding[:, :node_seq_len, :]
 
+        role_tensor = self.role_embedding(roles)  # (batch_size, input_seq_len, d_model)
+        role_tensor *= tf.math.sqrt(tf.cast(self.d_model, tf.float32))
+        role_tensor += self.node_pos_encoding[:, :node_seq_len, :]
+
+        node_tensor = tf.concat([node_tensor, role_tensor], 1)
         node_tensor = self.dropout(node_tensor, training=training)
 
         for i in range(self.num_layers):
