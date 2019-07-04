@@ -121,8 +121,10 @@ if __name__ == "__main__":
                   
                     if batch % args.eval_steps == 0:
                         eval_loss = eval_step(adj, nodes, targ)
+                        print('---------------------------------------------------------------------' + '\n')
                         print('Epoch {} Batch {} Eval Loss {:.4f} '.format(epoch, batch,
                                                                            eval_loss.numpy()))
+                        print('---------------------------------------------------------------------' + '\n')
                     else:
                         batch_loss = train_step(adj, nodes, targ)
                         print('Epoch {} Batch {} Batch Loss {:.4f} '.format(epoch, batch,
@@ -206,8 +208,10 @@ if __name__ == "__main__":
 
                     if batch % args.eval_steps == 0:
                         eval_loss = eval_step(inp, targ, enc_hidden)
+                        print('---------------------------------------------------------------------' + '\n')
                         print('Epoch {} Batch {} Eval Loss {:.4f} '.format(epoch, batch,
                                                                            eval_loss.numpy()))
+                        print('---------------------------------------------------------------------' + '\n')
                     else:
                         batch_loss = train_step(inp, targ, enc_hidden)
                         print('Epoch {} Batch {} Batch Loss {:.4f} '.format(epoch, batch,
@@ -326,9 +330,11 @@ if __name__ == "__main__":
                         
                     if (batch % args.eval_steps == 0):
                         eval_loss, acc = eval_step(inp, tar)
+                        print('---------------------------------------------------------------------' + '\n')
                         print('Epoch {} Batch {} Eval Loss {:.4f} Accuracy {:.4f}'.format(epoch, batch,
                                                                                           eval_loss.numpy(),
                                                                                           acc.numpy()))
+                        print('---------------------------------------------------------------------' + '\n')
                     else:
                         batch_loss, acc = train_step(inp, tar)
                         print('Epoch {} Batch {} Train Loss {:.4f} Accuracy {:.4f}'.format(epoch, batch,
@@ -404,7 +410,6 @@ if __name__ == "__main__":
             tar_real = targ[:, 1:]
             tar_inp = targ[:, :-1]
             mask = create_transgat_masks(tar_inp)
-
             predictions, att_weights = model(adj, nodes, roles, tar_inp, mask)
             eval_loss = loss_function(tar_real, predictions, loss_object)
             train_loss(eval_loss)
@@ -429,8 +434,10 @@ if __name__ == "__main__":
 
                     if batch % args.eval_steps == 0:
                         eval_loss, acc = eval_step(adj, nodes, roles, targ)
+                        print('---------------------------------------------------------------------'+'\n')
                         print('Epoch {} Batch {} Eval Loss {:.4f} Accuracy {:.4f}'.format(epoch, batch,
                                                                  eval_loss.numpy(), acc.numpy()))
+                        print('---------------------------------------------------------------------' + '\n')
                     else:
                         batch_loss, acc = train_step(adj, nodes, roles, targ)
                         print('Epoch {} Batch {} Train Loss {:.4f} Accuracy {:.4f}'.format(epoch, batch,
@@ -440,5 +447,5 @@ if __name__ == "__main__":
                         ckpt_save_path = ckpt_manager.save()
                         print("Saving checkpoint \n")
                     print('Time {} \n'.format(time.time() - start))
-
+                
                     pbar.update(1)
